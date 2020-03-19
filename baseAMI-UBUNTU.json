@@ -1,0 +1,50 @@
+{
+    "variables": {
+        "aws_access_key": "{{env `TF_VAR_AWS_ACCESS_KEY_ID`}}",
+        "aws_secret_key": "{{env `TF_VAR_AWS_SECRET_ACCESS_KEY`}}"
+    },
+    "builders": [{
+        "type": "amazon-ebs",
+        "access_key": "{{user `aws_access_key`}}",
+        "secret_key": "{{user `aws_secret_key`}}",
+        "region": "us-east-1",
+        "source_ami_filter": {
+            "filters": {
+                "virtualization-type": "hvm",
+                "name": "*ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server*",
+                "root-device-type": "ebs"
+            },
+            "owners": [
+                "099720109477"
+            ],
+            "most_recent": true
+        },
+        "instance_type": "t2.micro",
+        "ssh_username": "ubuntu",
+        "ami_name": "Base-AMI-Ubuntu-{{timestamp}}",
+        "vpc_id": "VPC_ID",
+        "subnet_id": "SUBNET_ID"
+    }],
+    "provisioners": [{
+            "type": "file",
+            "source": "/tb65/AMICopy.sh",
+            "destination": "/tb65/AMICopy.sh"
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo apt-get update -y",
+                "sleep 120",
+                "sudo apt-mark hold grub-pc",
+                "sudo apt-get upgrade -y",
+                "echo 'Installing AWSCLI...'",
+                "sudo apt install -y python3-minimal",
+                "sudo apt install -y python3-pip",
+                "sudo pip3 install awscli",
+                "pip3 install awscli --upgrade --user",
+                "export PATH=/home/ubuntu/.local/bin:$PATH",
+                "aws --version"
+            ]
+        }
+    ]
+}

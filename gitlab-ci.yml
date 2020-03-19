@@ -1,0 +1,66 @@
+image:
+ name: docker:stable
+ entrypoint:
+    - '/usr/bin/env'
+    - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+
+variables:
+  # When using dind service we need to instruct docker, to talk with the
+  # daemon started inside of the service. The daemon is available with
+  # a network connection instead of the default /var/run/docker.sock socket.
+  #
+  # The 'docker' hostname is the alias of the service container as described at
+  # https://docs.gitlab.com/ee/ci/docker/using_docker_images.html#accessing-the-services
+  #
+  # Note that if you're using Kubernetes executor, the variable should be set to
+  # tcp://localhost:2375 because of how Kubernetes executor connects services
+  # to the job container
+  DOCKER_HOST: tcp://docker:2375/
+  # When using dind, it's wise to use the overlayfs driver for
+  # improved performance.
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+
+services:
+- docker:dind
+
+before_script:
+- docker info
+
+baseAMI-AMZN:
+  variables:
+    AWS_ACCESS_KEY_ID: $TF_VAR_AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY: $TF_VAR_AWS_SECRET_ACCESS_KEY
+  stage: build
+  script:
+  - export AWS_ACCESS_KEY_ID=$TF_VAR_AWS_ACCESS_KEY_ID
+  - export AWS_SECRET_ACCESS_KEY=$TF_VAR_AWS_SECRET_ACCESS_KEY
+  - touch output.txt
+  #Build and run the Packer container to run the build from.
+  - docker build --build-arg PACKER_VERSION=$PACKER_VERSION --build-arg TF_VAR_DD_API_KEY=$TF_VAR_DD_API_KEY -t packer .
+  - docker run -d -t -i --name packer_builder packer
+  - docker ps #Check and make sure we are running here
+  #Validate our Packer .json
+  - docker exec -i -e AWS_ACCESS_KEY_ID="$TF_VAR_AWS_ACCESS_KEY_ID" -e AWS_SECRET_ACCESS_KEY="$TF_VAR_AWS_SECRET_ACCESS_KEY" packer_builder packer validate /baseAMI-AMZN.json
+  #Build it and send the output of the AMI ID to the output.txt file so the next step can scrape it and output it to the job output
+  - docker exec -i -e AWS_ACCESS_KEY_ID="$TF_VAR_AWS_ACCESS_KEY_ID" -e AWS_SECRET_ACCESS_KEY="$TF_VAR_AWS_SECRET_ACCESS_KEY" packer_builder packer build /baseAMI-AMZN.json 2>&1 | tee output.txt
+  - AMI_ID=$(tail -5 output.txt | head -5 | awk 'match($0, /ami-.*/) { print substr($0, RSTART, RLENGTH) }')
+  - echo $AMI_ID
+  #If you had other accounts that you wanted the AMI to be shared with and made available to you could uncomment the following and let the AMICopy.sh script run.
+  #- docker exec -i -e AWS_ACCESS_KEY_ID="$TF_VAR_AWS_ACCESS_KEY_ID" -e AWS_SECRET_ACCESS_KEY="$TF_VAR_AWS_SECRET_ACCESS_KEY" -e AWS_REGION=$AWS_REGION -e AMI_ID=$AMI_ID -e AWS_ACCOUNT2_ACCOUNT=$TF_VAR_ACCOUNT2_ACCOUNT_NUMBER -e AWS_ACCOUNT3_ACCOUNT=$TF_VAR_ACCOUNT3_ACCOUNT_NUMBER packer_builder /AMICopy.sh
+
+
+baseAMI-UBUNTU:
+  variables:
+    AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+  stage: build
+  script:
+  - touch output.txt
+  - docker build --build-arg PACKER_VERSION=$PACKER_VERSION --build-arg TF_VAR_DD_API_KEY=$TF_VAR_DD_API_KEY -t packer .
+  - docker run -d -t -i --name packer_builder packer
+  - docker exec -i -e AWS_ACCESS_KEY_ID="$TF_VAR_AWS_ACCESS_KEY_ID" -e AWS_SECRET_ACCESS_KEY="$TF_VAR_AWS_SECRET_ACCESS_KEY" packer_builder packer validate /baseAMI-UBUNTU.json
+  - docker exec -i -e AWS_ACCESS_KEY_ID="$TF_VAR_AWS_ACCESS_KEY_ID" -e AWS_SECRET_ACCESS_KEY="$TF_VAR_AWS_SECRET_ACCESS_KEY" packer_builder packer build /baseAMI-UBUNTU.json 2>&1 | tee output.txt
+  - AMI_ID=$(tail -5 output.txt | head -5 | awk 'match($0, /ami-.*/) { print substr($0, RSTART, RLENGTH) }')
+  - echo $AMI_ID
+  #- docker exec -i -e AWS_ACCESS_KEY_ID="$TF_VAR_AWS_ACCESS_KEY_ID" -e AWS_SECRET_ACCESS_KEY="$TF_VAR_AWS_SECRET_ACCESS_KEY" -e AWS_REGION=$AWS_REGION -e AMI_ID=$AMI_ID -e AWS_ACCOUNT2_ACCOUNT=$TF_VAR_ACCOUNT2_ACCOUNT_NUMBER -e AWS_ACCOUNT3_ACCOUNT=$TF_VAR_ACCOUNT3_ACCOUNT_NUMBER packer_builder /AMICopy.sh
