@@ -27,8 +27,8 @@
     }],
     "provisioners": [{
             "type": "file",
-            "source": "/tb65/AMICopy.sh",
-            "destination": "/tb65/AMICopy.sh"
+            "source": "/packer/AMICopy.sh",
+            "destination": "/packer/AMICopy.sh"
         },
         {
             "type": "shell",

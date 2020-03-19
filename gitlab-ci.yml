@@ -47,7 +47,7 @@ baseAMI-AMZN:
   - AMI_ID=$(tail -5 output.txt | head -5 | awk 'match($0, /ami-.*/) { print substr($0, RSTART, RLENGTH) }')
   - echo $AMI_ID
   #If you had other accounts that you wanted the AMI to be shared with and made available to you could uncomment the following and let the AMICopy.sh script run.
-  #- docker exec -i -e AWS_ACCESS_KEY_ID="$TF_VAR_AWS_ACCESS_KEY_ID" -e AWS_SECRET_ACCESS_KEY="$TF_VAR_AWS_SECRET_ACCESS_KEY" -e AWS_REGION=$AWS_REGION -e AMI_ID=$AMI_ID -e AWS_ACCOUNT2_ACCOUNT=$TF_VAR_ACCOUNT2_ACCOUNT_NUMBER -e AWS_ACCOUNT3_ACCOUNT=$TF_VAR_ACCOUNT3_ACCOUNT_NUMBER packer_builder /AMICopy.sh
+  #- docker exec -i -e AWS_ACCESS_KEY_ID="$TF_VAR_AWS_ACCESS_KEY_ID" -e AWS_SECRET_ACCESS_KEY="$TF_VAR_AWS_SECRET_ACCESS_KEY" -e AWS_REGION=$AWS_REGION -e AMI_ID=$AMI_ID -e AWS_ACCOUNT2_ACCOUNT=$TF_VAR_ACCOUNT2_ACCOUNT_NUMBER -e AWS_ACCOUNT3_ACCOUNT=$TF_VAR_ACCOUNT3_ACCOUNT_NUMBER packer_builder /packer/AMICopy.sh
 
 
 baseAMI-UBUNTU:
@@ -63,4 +63,4 @@ baseAMI-UBUNTU:
   - docker exec -i -e AWS_ACCESS_KEY_ID="$TF_VAR_AWS_ACCESS_KEY_ID" -e AWS_SECRET_ACCESS_KEY="$TF_VAR_AWS_SECRET_ACCESS_KEY" packer_builder packer build /baseAMI-UBUNTU.json 2>&1 | tee output.txt
   - AMI_ID=$(tail -5 output.txt | head -5 | awk 'match($0, /ami-.*/) { print substr($0, RSTART, RLENGTH) }')
   - echo $AMI_ID
-  #- docker exec -i -e AWS_ACCESS_KEY_ID="$TF_VAR_AWS_ACCESS_KEY_ID" -e AWS_SECRET_ACCESS_KEY="$TF_VAR_AWS_SECRET_ACCESS_KEY" -e AWS_REGION=$AWS_REGION -e AMI_ID=$AMI_ID -e AWS_ACCOUNT2_ACCOUNT=$TF_VAR_ACCOUNT2_ACCOUNT_NUMBER -e AWS_ACCOUNT3_ACCOUNT=$TF_VAR_ACCOUNT3_ACCOUNT_NUMBER packer_builder /AMICopy.sh
+  #- docker exec -i -e AWS_ACCESS_KEY_ID="$TF_VAR_AWS_ACCESS_KEY_ID" -e AWS_SECRET_ACCESS_KEY="$TF_VAR_AWS_SECRET_ACCESS_KEY" -e AWS_REGION=$AWS_REGION -e AMI_ID=$AMI_ID -e AWS_ACCOUNT2_ACCOUNT=$TF_VAR_ACCOUNT2_ACCOUNT_NUMBER -e AWS_ACCOUNT3_ACCOUNT=$TF_VAR_ACCOUNT3_ACCOUNT_NUMBER packer_builder /packer/AMICopy.sh
